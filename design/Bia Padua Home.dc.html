@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bia Pádua Home</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Marcellus&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #F7F4EF; }
+  body { -webkit-font-smoothing: antialiased; }
+  a { color: #262523; text-decoration: none; }
+  a:hover { color: #B08D63; }
+  ::selection { background: #E3D8C8; }
+</style>
+</helmet>
+<div style="font-family: 'Jost', system-ui, sans-serif; color: #262523; background: #F7F4EF; overflow-x: hidden">
+
+  <header style="position: fixed; top: 0; left: 0; right: 0; z-index: 40; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 22px clamp(20px, 5vw, 64px); mix-blend-mode: difference; color: #F7F4EF">
+    <a href="#top" style="font-family: 'Marcellus', serif; font-size: clamp(15px, 2.2vw, 19px); letter-spacing: 0.26em; text-transform: uppercase; color: inherit">Bia Pádua<span style="opacity: 0.6"> Home</span></a>
+    <nav style="display: flex; gap: clamp(18px, 3vw, 40px); font-size: 11.5px; letter-spacing: 0.22em; text-transform: uppercase; font-weight: 400">
+      <a href="#projetos" style="color: inherit; opacity: 0.85" style-hover="{ opacity: 1 }">Projetos</a>
+      <a href="#sobre" style="color: inherit; opacity: 0.85" style-hover="{ opacity: 1 }">Sobre</a>
+      <a href="#contato" style="color: inherit; opacity: 0.85" style-hover="{ opacity: 1 }">Contato</a>
+    </nav>
+  </header>
+
+  <section id="top" style="position: relative; height: 100svh; min-height: 560px; width: 100%; overflow: hidden; background: #262523">
+    <div style="position: absolute; inset: 0">
+      <image-slot id="bph-hero" shape="rect" fit="cover" placeholder="foto de ambiente — vertical/panorâmica, luz natural"></image-slot>
+    </div>
+    <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(38,37,35,0.42) 0%, rgba(38,37,35,0.06) 42%, rgba(38,37,35,0.5) 100%); pointer-events: none"></div>
+    <div ref="{{ heroRef }}" style="position: absolute; left: clamp(20px, 5vw, 64px); right: clamp(20px, 5vw, 64px); bottom: clamp(64px, 10vh, 120px); display: flex; flex-direction: column; gap: 18px; pointer-events: none">
+      <p style="margin: 0; font-size: 10.5px; letter-spacing: 0.34em; text-transform: uppercase; color: rgba(247,244,239,0.72)">Tapeçaria sob medida</p>
+      <h1 style="margin: 0; max-width: 15em; font-family: 'Marcellus', serif; font-weight: 400; font-size: clamp(30px, 5.4vw, 62px); line-height: 1.12; letter-spacing: 0.005em; color: #F7F4EF; text-wrap: pretty">O têxtil como estrutura do ambiente.</h1>
+    </div>
+  </section>
+
+  <section id="projetos" style="padding: clamp(72px, 12vh, 150px) clamp(20px, 5vw, 64px) clamp(40px, 6vh, 80px)">
+    <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 16px; border-bottom: 1px solid #E3DCD2; padding-bottom: 22px; margin-bottom: clamp(36px, 6vh, 72px)">
+      <h2 style="margin: 0; font-family: 'Marcellus', serif; font-weight: 400; font-size: clamp(24px, 3.4vw, 38px); letter-spacing: 0.01em">Projetos</h2>
+      <p style="margin: 0; max-width: 34ch; font-size: 13.5px; line-height: 1.7; color: #6E6A63">Ambientes realizados em residências e apartamentos, com peças desenvolvidas exclusivamente para cada espaço.</p>
+    </div>
+
+    <div ref="{{ gridRef }}" onClick="{{ onGridClick }}" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: clamp(28px, 4vw, 56px) clamp(20px, 3vw, 40px)">
+
+      <article data-project="serra" data-reveal="1" style="grid-column: span 2; cursor: pointer">
+        <div style="position: relative; overflow: hidden; aspect-ratio: 16 / 10; background: #EDE7DE">
+          <image-slot id="bph-serra-cover" shape="rect" fit="cover" placeholder="Casa Serra do Cipó — sala de estar" style="transition: transform 900ms cubic-bezier(0.16,1,0.3,1)" style-hover="{ transform: 'scale(1.035)' }"></image-slot>
+        </div>
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding-top: 16px">
+          <div>
+            <h3 style="margin: 0 0 5px; font-family: 'Marcellus', serif; font-weight: 400; font-size: clamp(18px, 1.6vw, 23px)">Casa Serra do Cipó</h3>
+            <p style="margin: 0; font-size: 11.5px; letter-spacing: 0.18em; text-transform: uppercase; color: #8C877E">Cortinas · Colchas · Almofadas</p>
+          </div>
+          <span data-year="1" style="font-size: 11.5px; letter-spacing: 0.16em; color: #A8A29A">2025</span>
+        </div>
+      </article>
+
+      <article data-project="lourdes" data-reveal="1" style="cursor: pointer">
+        <div style="position: relative; overflow: hidden; aspect-ratio: 4 / 5; background: #EDE7DE">
+          <image-slot id="bph-lourdes-cover" shape="rect" fit="cover" placeholder="Apartamento Lourdes — quarto" style="transition: transform 900ms cubic-bezier(0.16,1,0.3,1)" style-hover="{ transform: 'scale(1.035)' }"></image-slot>
+        </div>
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding-top: 16px">
+          <div>
+            <h3 style="margin: 0 0 5px; font-family: 'Marcellus', serif; font-weight: 400; font-size: clamp(18px, 1.6vw, 23px)">Apartamento Lourdes</h3>
+            <p style="margin: 0; font-size: 11.5px; letter-spacing: 0.18em; text-transform: uppercase; color: #8C877E">Persianas · Cabeceira</p>
+          </div>
+          <span data-year="1" style="font-size: 11.5px; letter-spacing: 0.16em; color: #A8A29A">2025</span>
+        </div>
+      </article>
+
+      <article data-project="belvedere" data-reveal="1" style="cursor: pointer">
+        <div style="position: relative; overflow: hidden; aspect-ratio: 4 / 5; background: #EDE7DE">
+          <image-slot id="bph-belvedere-cover" shape="rect" fit="cover" placeholder="Suíte Belvedere — cabeceira e roupa de cama" style="transition: transform 900ms cubic-bezier(0.16,1,0.3,1)" style-hover="{ transform: 'scale(1.035)' }"></image-slot>
+        </div>
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding-top: 16px">
+          <div>
+            <h3 style="margin: 0 0 5px; font-family: 'Marcellus', serif; font-weight: 400; font-size: clamp(18px, 1.6vw, 23px)">Suíte Belvedere</h3>
+            <p style="margin: 0; font-size: 11.5px; letter-spacing: 0.18em; text-transform: uppercase; color: #8C877E">Colchas · Tapeçaria</p>
+          </div>
+          <span data-year="1" style="font-size: 11.5px; letter-spacing: 0.16em; color: #A8A29A">2024</span>
+        </div>
+      </article>
+
+      <article data-project="alphaville" data-reveal="1" style="grid-column: span 2; cursor: pointer">
+        <div style="position: relative; overflow: hidden; aspect-ratio: 16 / 10; background: #EDE7DE">
+          <image-slot id="bph-alphaville-cover" shape="rect" fit="cover" placeholder="Residência Alphaville — sala de jantar" style="transition: transform 900ms cubic-bezier(0.16,1,0.3,1)" style-hover="{ transform: 'scale(1.035)' }"></image-slot>
+        </div>
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding-top: 16px">
+          <div>
+            <h3 style="margin: 0 0 5px; font-family: 'Marcellus', serif; font-weight: 400; font-size: clamp(18px, 1.6vw, 23px)">Residência Alphaville</h3>
+            <p style="margin: 0; font-size: 11.5px; letter-spacing: 0.18em; text-transform: uppercase; color: #8C877E">Cortinas · Estofados</p>
+          </div>
+          <span data-year="1" style="font-size: 11.5px; letter-spacing: 0.16em; color: #A8A29A">2024</span>
+        </div>
+      </article>
+
+      <article data-project="savassi" data-reveal="1" style="cursor: pointer">
+        <div style="position: relative; overflow: hidden; aspect-ratio: 4 / 5; background: #EDE7DE">
+          <image-slot id="bph-savassi-cover" shape="rect" fit="cover" placeholder="Cobertura Savassi — varanda" style="transition: transform 900ms cubic-bezier(0.16,1,0.3,1)" style-hover="{ transform: 'scale(1.035)' }"></image-slot>
+        </div>
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding-top: 16px">
+          <div>
+            <h3 style="margin: 0 0 5px; font-family: 'Marcellus', serif; font-weight: 400; font-size: clamp(18px, 1.6vw, 23px)">Cobertura Savassi</h3>
+            <p style="margin: 0; font-size: 11.5px; letter-spacing: 0.18em; text-transform: uppercase; color: #8C877E">Almofadas · Persianas</p>
+          </div>
+          <span data-year="1" style="font-size: 11.5px; letter-spacing: 0.16em; color: #A8A29A">2023</span>
+        </div>
+      </article>
+
+      <article data-project="vale" data-reveal="1" style="cursor: pointer">
+        <div style="position: relative; overflow: hidden; aspect-ratio: 4 / 5; background: #EDE7DE">
+          <image-slot id="bph-vale-cover" shape="rect" fit="cover" placeholder="Casa Vale do Sereno — home theater" style="transition: transform 900ms cubic-bezier(0.16,1,0.3,1)" style-hover="{ transform: 'scale(1.035)' }"></image-slot>
+        </div>
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding-top: 16px">
+          <div>
+            <h3 style="margin: 0 0 5px; font-family: 'Marcellus', serif; font-weight: 400; font-size: clamp(18px, 1.6vw, 23px)">Casa Vale do Sereno</h3>
+            <p style="margin: 0; font-size: 11.5px; letter-spacing: 0.18em; text-transform: uppercase; color: #8C877E">Tapeçaria · Cortinas</p>
+          </div>
+          <span data-year="1" style="font-size: 11.5px; letter-spacing: 0.16em; color: #A8A29A">2023</span>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section id="sobre" style="padding: clamp(80px, 14vh, 170px) clamp(20px, 5vw, 64px); background: #F0EBE3">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: clamp(40px, 6vw, 90px); align-items: center; max-width: 1320px; margin: 0 auto">
+      <div data-reveal="1" style="position: relative; aspect-ratio: 3 / 4; overflow: hidden; background: #E3DCD2">
+        <image-slot id="bph-sobre" shape="rect" fit="cover" placeholder="retrato ou detalhe de tecido / ateliê"></image-slot>
+      </div>
+      <div data-reveal="1" style="display: flex; flex-direction: column; gap: 22px; max-width: 46ch">
+        <p style="margin: 0; font-size: 10.5px; letter-spacing: 0.34em; text-transform: uppercase; color: #A0968A">Sobre</p>
+        <h2 style="margin: 0; font-family: 'Marcellus', serif; font-weight: 400; font-size: clamp(26px, 3.6vw, 42px); line-height: 1.2">Bia Pádua Home</h2>
+        <p style="margin: 0; font-size: 15.5px; line-height: 1.85; color: #4A463F; text-wrap: pretty">Almofadas, colchas, cortinas, persianas e tapeçaria desenvolvidas sob medida, peça por peça, para cada ambiente. O trabalho começa na leitura do espaço e na escolha do tecido, e termina no acabamento feito à mão.</p>
+        <p style="margin: 0; font-size: 15.5px; line-height: 1.85; color: #4A463F; text-wrap: pretty">Curadoria têxtil, personalização e discrição orientam cada projeto. Atendimento por indicação e agenda reduzida, com acompanhamento direto do início à instalação.</p>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 24px; margin-top: 14px; padding-top: 26px; border-top: 1px solid #DFD7CB">
+          <div><p style="margin: 0 0 6px; font-family: 'Marcellus', serif; font-size: 20px">Sob medida</p><p style="margin: 0; font-size: 12.5px; line-height: 1.6; color: #8C877E">Cada peça dimensionada para o ambiente.</p></div>
+          <div><p style="margin: 0 0 6px; font-family: 'Marcellus', serif; font-size: 20px">Curadoria</p><p style="margin: 0; font-size: 12.5px; line-height: 1.6; color: #8C877E">Seleção de tecidos nacionais e importados.</p></div>
+          <div><p style="margin: 0 0 6px; font-family: 'Marcellus', serif; font-size: 20px">Instalação</p><p style="margin: 0; font-size: 12.5px; line-height: 1.6; color: #8C877E">Acompanhamento próprio na entrega.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer id="contato" style="background: #262523; color: #E8E2D8; padding: clamp(64px, 10vh, 120px) clamp(20px, 5vw, 64px) 40px">
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); gap: clamp(32px, 5vw, 72px); max-width: 1320px; margin: 0 auto">
+      <div>
+        <p style="margin: 0 0 16px; font-family: 'Marcellus', serif; font-size: 17px; letter-spacing: 0.26em; text-transform: uppercase">Bia Pádua Home</p>
+        <p style="margin: 0; max-width: 26ch; font-size: 13.5px; line-height: 1.8; color: rgba(232,226,216,0.6)">Tapeçaria e têxteis sob medida. Belo Horizonte, MG.</p>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <p style="margin: 0 0 6px; font-size: 10.5px; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(232,226,216,0.45)">Contato</p>
+        <a href="mailto:contato@biapaduahome.com.br" style="color: #E8E2D8; font-size: 14.5px" style-hover="{ color: '#C9A87C' }">contato@biapaduahome.com.br</a>
+        <a href="tel:+553133334444" style="color: #E8E2D8; font-size: 14.5px" style-hover="{ color: '#C9A87C' }">+55 31 3333 4444</a>
+        <a href="https://instagram.com" target="_blank" rel="noreferrer" style="color: #E8E2D8; font-size: 14.5px" style-hover="{ color: '#C9A87C' }">@biapaduahome</a>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <p style="margin: 0 0 6px; font-size: 10.5px; letter-spacing: 0.3em; text-transform: uppercase; color: rgba(232,226,216,0.45)">Ateliê</p>
+        <p style="margin: 0; font-size: 14.5px; line-height: 1.8; color: rgba(232,226,216,0.8)">Visitas com agendamento prévio<br>Segunda a sexta, 9h às 18h</p>
+      </div>
+    </div>
+    <p style="max-width: 1320px; margin: clamp(48px, 8vh, 90px) auto 0; padding-top: 22px; border-top: 1px solid rgba(232,226,216,0.14); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(232,226,216,0.35)">© 2026 Bia Pádua Home</p>
+  </footer>
+
+  <sc-if value="{{ isOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position: fixed; inset: 0; z-index: 60; background: #F7F4EF; overflow-y: auto; animation: none">
+      <div style="position: sticky; top: 0; z-index: 2; display: flex; align-items: baseline; justify-content: space-between; gap: 20px; padding: 22px clamp(20px, 5vw, 64px); background: rgba(247,244,239,0.92); backdrop-filter: blur(8px); border-bottom: 1px solid #E3DCD2">
+        <div>
+          <h3 style="margin: 0 0 4px; font-family: 'Marcellus', serif; font-weight: 400; font-size: clamp(19px, 2.4vw, 27px)">{{ activeTitle }}</h3>
+          <p style="margin: 0; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: #8C877E">{{ activeMeta }}</p>
+        </div>
+        <button onClick="{{ close }}" style="border: 1px solid #D7CFC3; background: transparent; color: #262523; font-family: 'Jost', sans-serif; font-size: 10.5px; letter-spacing: 0.22em; text-transform: uppercase; padding: 11px 20px; cursor: pointer; transition: all 300ms ease" style-hover="{ background: '#262523', color: '#F7F4EF', borderColor: '#262523' }">Fechar</button>
+      </div>
+      <div style="padding: clamp(28px, 5vw, 64px) clamp(20px, 5vw, 64px) clamp(64px, 10vh, 120px); display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: clamp(20px, 3vw, 40px); max-width: 1500px; margin: 0 auto">
+        <sc-for list="{{ activePhotos }}" as="photo" hint-placeholder-count="4">
+          <figure style="margin: 0">
+            <div style="position: relative; overflow: hidden; aspect-ratio: 3 / 2; background: #EDE7DE">
+              <image-slot id="{{ photo.id }}" shape="rect" fit="cover" placeholder="{{ photo.caption }}"></image-slot>
+            </div>
+            <figcaption style="padding-top: 12px; font-size: 11.5px; letter-spacing: 0.16em; text-transform: uppercase; color: #A8A29A">{{ photo.caption }}</figcaption>
+          </figure>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showProjectYear&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Projetos&quot;},&quot;heroTextPosition&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Inferior esquerdo&quot;,&quot;Centro&quot;],&quot;default&quot;:&quot;Inferior esquerdo&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Hero&quot;},&quot;revealAnimation&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Movimento&quot;}}">
+const PROJECTS = {
+  serra: { title: 'Casa Serra do Cipó', meta: 'Nova Lima, MG · 2025', photos: ['Sala de estar — cortinas em linho', 'Almofadas em algodão e seda', 'Varanda — colcha de verão', 'Detalhe de acabamento manual'] },
+  lourdes: { title: 'Apartamento Lourdes', meta: 'Belo Horizonte, MG · 2025', photos: ['Quarto principal — persianas romanas', 'Cabeceira sob medida', 'Estar íntimo', 'Detalhe do tecido'] },
+  belvedere: { title: 'Suíte Belvedere', meta: 'Belo Horizonte, MG · 2024', photos: ['Colcha e mantas', 'Tapeçaria da poltrona', 'Vista geral da suíte', 'Detalhe do vivo em contraste'] },
+  alphaville: { title: 'Residência Alphaville', meta: 'Lagoa dos Ingleses, MG · 2024', photos: ['Sala de jantar — cortinas até o piso', 'Estofamento das cadeiras', 'Hall de entrada', 'Detalhe do bandô'] },
+  savassi: { title: 'Cobertura Savassi', meta: 'Belo Horizonte, MG · 2023', photos: ['Varanda — almofadas em tons de areia', 'Persianas de madeira', 'Estar externo', 'Detalhe da costura'] },
+  vale: { title: 'Casa Vale do Sereno', meta: 'Nova Lima, MG · 2023', photos: ['Home theater — cortinas blackout', 'Tapeçaria do sofá', 'Detalhe de veludo', 'Ambiente integrado'] }
+};
+
+class Component extends DCLogic {
+  state = { active: null };
+
+  componentDidMount() {
+    this.applyProps();
+    this.reveal();
+    this.onKey = (e) => { if (e.key === 'Escape') this.setState({ active: null }); };
+    window.addEventListener('keydown', this.onKey);
+  }
+
+  componentDidUpdate(prevProps, prevState) {
+    this.applyProps();
+    if (prevState.active !== this.state.active) {
+      document.body.style.overflow = this.state.active ? 'hidden' : '';
+      if (!this.state.active) this.reveal();
+    }
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('keydown', this.onKey);
+    if (this.revealCheck) {
+      window.removeEventListener('scroll', this.revealCheck);
+      window.removeEventListener('resize', this.revealCheck);
+    }
+    document.body.style.overflow = '';
+  }
+
+  applyProps() {
+    const showYear = this.props.showProjectYear ?? true;
+    if (this.gridRef) {
+      this.gridRef.querySelectorAll('[data-year]').forEach((el) => { el.style.display = showYear ? '' : 'none'; });
+    }
+    const centered = (this.props.heroTextPosition ?? 'Inferior esquerdo') === 'Centro';
+    if (this.heroRef) {
+      const h = this.heroRef;
+      h.style.alignItems = centered ? 'center' : 'flex-start';
+      h.style.textAlign = centered ? 'center' : 'left';
+      h.style.bottom = centered ? '' : 'clamp(64px, 10vh, 120px)';
+      h.style.top = centered ? '0' : '';
+      h.style.justifyContent = centered ? 'center' : 'flex-end';
+      if (centered) h.style.bottom = '0';
+    }
+  }
+
+  reveal() {
+    if (!(this.props.revealAnimation ?? true)) return;
+    const nodes = Array.from(document.querySelectorAll('[data-reveal]'));
+    const show = (n) => { n.style.opacity = '1'; n.style.transform = 'none'; };
+    nodes.forEach((n, i) => {
+      if (n.dataset.revealed) return;
+      n.dataset.revealed = '1';
+      n.style.opacity = '0';
+      n.style.transform = 'translateY(22px)';
+      n.style.transition = `opacity 1100ms cubic-bezier(0.16,1,0.3,1) ${(i % 3) * 90}ms, transform 1100ms cubic-bezier(0.16,1,0.3,1) ${(i % 3) * 90}ms`;
+    });
+    const check = () => {
+      let pending = 0;
+      nodes.forEach((n) => {
+        if (n.dataset.shown) return;
+        const r = n.getBoundingClientRect();
+        if (r.top < window.innerHeight * 0.92 && r.bottom > 0) { n.dataset.shown = '1'; show(n); }
+        else pending++;
+      });
+      if (!pending) {
+        window.removeEventListener('scroll', check);
+        window.removeEventListener('resize', check);
+      }
+    };
+    window.addEventListener('scroll', check, { passive: true });
+    window.addEventListener('resize', check);
+    this.revealCheck = check;
+    requestAnimationFrame(check);
+    setTimeout(check, 300);
+    // último recurso: se algo continuar oculto, mostra tudo
+    setTimeout(() => nodes.forEach((n) => { if (!n.dataset.shown) { n.dataset.shown = '1'; show(n); } }), 2500);
+  }
+
+  renderVals() {
+    const key = this.state.active;
+    const p = key ? PROJECTS[key] : null;
+    return {
+      heroRef: (el) => { this.heroRef = el; },
+      gridRef: (el) => { this.gridRef = el; },
+      onGridClick: (e) => {
+        const card = e.target.closest && e.target.closest('[data-project]');
+        if (card && PROJECTS[card.dataset.project]) this.setState({ active: card.dataset.project });
+      },
+      close: () => this.setState({ active: null }),
+      isOpen: !!p,
+      activeTitle: p ? p.title : '',
+      activeMeta: p ? p.meta : '',
+      activePhotos: p ? p.photos.map((caption, i) => ({ id: `bph-${key}-${i + 1}`, caption })) : []
+    };
+  }
+}
+</script>
+</body>
+</html>
