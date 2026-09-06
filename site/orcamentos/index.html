@@ -374,8 +374,8 @@ table.tabela-pdf td{ padding:11px 4px; border-bottom:1px solid var(--line-1); }
               <th style="width:14%">Ambiente</th>
               <th style="width:22%">Produto</th>
               <th style="width:6%">Qtde</th>
-              <th style="width:8%">Altura</th>
               <th style="width:8%">Largura</th>
+              <th style="width:8%">Altura</th>
               <th style="width:8%">Comp.</th>
               <th style="width:10%">Metragem</th>
               <th style="width:9%">Vl. Unit.</th>
@@ -726,9 +726,9 @@ async function abrirOrcamento(id){
   document.getElementById('orc-cliente-busca').value = '';
   document.getElementById('orc-cliente-selecionado').textContent = o.clientes ? `Selecionado: ${o.clientes.nome}` : '';
   document.getElementById('chk-ocultar-medidas').checked = false;
-  document.querySelector('input[name="medidas-conferidas"][value="nao"]').checked = true;
-  document.getElementById('medidas-conferidas-data').value = '';
-  document.getElementById('medidas-conferidas-data').style.display = 'none';
+  document.querySelector(`input[name="medidas-conferidas"][value="${o.medidas_conferidas ? 'sim' : 'nao'}"]`).checked = true;
+  document.getElementById('medidas-conferidas-data').value = o.medidas_conferidas_data || '';
+  document.getElementById('medidas-conferidas-data').style.display = o.medidas_conferidas ? 'inline-block' : 'none';
   document.getElementById('btn-duplicar-orc').style.display = o.id ? 'inline-flex' : 'none';
   document.getElementById('btn-excluir-orc').style.display = o.id ? 'inline-flex' : 'none';
 
@@ -781,8 +781,8 @@ function renderItens(){
         <div class="autocomplete-lista lista-produto" style="display:none;"></div>
       </td>
       <td><input type="number" class="in-qtde mono" value="${it.qtde||1}" min="0" step="1"></td>
-      <td><input type="text" class="in-altura mono" value="${it.altura||''}" placeholder="cm"></td>
       <td><input type="text" class="in-largura mono" value="${it.largura||''}" placeholder="cm"></td>
+      <td><input type="text" class="in-altura mono" value="${it.altura||''}" placeholder="cm"></td>
       <td><input type="text" class="in-comprimento mono" value="${it.comprimento||''}" placeholder="cm"></td>
       <td><input type="text" class="in-metragem mono" value="${it.metragem||''}" placeholder="m"></td>
       <td><input type="number" class="in-vlunit mono" value="${it.vl_unitario||0}" min="0" step="0.01"></td>
@@ -864,6 +864,18 @@ function atualizarTotalGeral(){
   document.getElementById('orc-total-exibicao').textContent = fmtMoeda(total);
 }
 
+// Mude para true depois de rodar no Supabase o SQL que cria as colunas
+// medidas_conferidas e medidas_conferidas_data na tabela orcamentos.
+const COLUNAS_MEDIDAS_CONFERIDAS_EXISTEM = false;
+
+function lerMedidasConferidas(){
+  const sim = document.querySelector('input[name="medidas-conferidas"]:checked')?.value === 'sim';
+  return {
+    medidas_conferidas: sim,
+    medidas_conferidas_data: sim ? (document.getElementById('medidas-conferidas-data').value || null) : null
+  };
+}
+
 /* ---- salvar orçamento ---- */
 async function salvarOrcamento({forcarRascunho=false, silencioso=false}={}){
   const o = ESTADO.orcamentoAtual;
@@ -882,7 +894,8 @@ async function salvarOrcamento({forcarRascunho=false, silencioso=false}={}){
     info_pagamento: document.getElementById('orc-pagamento').value,
     observacoes: document.getElementById('orc-obs').value,
     informacoes_adicionais: document.getElementById('orc-info-adicionais').value,
-    vl_total: total
+    vl_total: total,
+    ...(COLUNAS_MEDIDAS_CONFERIDAS_EXISTEM ? lerMedidasConferidas() : {})
   };
 
   let orcamentoId = o.id;
@@ -936,7 +949,8 @@ document.getElementById('btn-duplicar-orc').onclick = async ()=>{
     info_pagamento: document.getElementById('orc-pagamento').value,
     observacoes: document.getElementById('orc-obs').value,
     informacoes_adicionais: document.getElementById('orc-info-adicionais').value,
-    vl_total: o.itens.reduce((s,i)=> s + (i.vl_total||0), 0)
+    vl_total: o.itens.reduce((s,i)=> s + (i.vl_total||0), 0),
+    ...(COLUNAS_MEDIDAS_CONFERIDAS_EXISTEM ? lerMedidasConferidas() : {})
   };
   const { data, error } = await sb.from('orcamentos').insert(payload).select().single();
   if(error){ toast('Erro ao duplicar: '+error.message); return; }
