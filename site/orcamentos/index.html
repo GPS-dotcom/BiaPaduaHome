@@ -234,11 +234,19 @@ table.tabela-pdf td{ padding:11px 4px; border-bottom:1px solid var(--line-1); }
 #tela-acesso .btn:hover{ opacity:.9; }
 .erro-acesso{ min-height:1.4em; margin-top:16px; font-size:12px; color:#C99; letter-spacing:.04em; }
 
+.linha-opcoes-pdf{ display:flex; flex-wrap:wrap; align-items:center; gap:16px 32px; margin-bottom:24px; }
 .chk-toggle{
-  display:inline-flex; align-items:center; gap:9px; margin-bottom:24px;
+  display:inline-flex; align-items:center; gap:9px;
   font-size:11.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--gray-1); cursor:pointer;
 }
 .chk-toggle input{ accent-color:var(--gold); width:14px; height:14px; cursor:pointer; }
+.campo-medidas-conferidas{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+.campo-medidas-conferidas .label{ margin:0; }
+.opcoes-medidas{ display:flex; align-items:center; gap:14px; font-size:13.5px; color:var(--text-2); }
+.opcoes-medidas label{ display:flex; align-items:center; gap:6px; cursor:pointer; text-transform:none; letter-spacing:normal; }
+.opcoes-medidas input[type="radio"]{ accent-color:var(--gold); cursor:pointer; }
+#medidas-conferidas-data{ padding:6px 2px; border:none; border-bottom:1px solid var(--line-2); background:transparent; }
+#medidas-conferidas-data:focus{ outline:none; border-color:var(--gold); }
 
 .vazio{ text-align:center; padding:80px 20px; color:var(--gray-2); }
 .vazio .marca-medida{ font-family:'Marcellus',serif; font-size:15px; letter-spacing:.2em; color:var(--line-2); margin-bottom:14px; text-transform:uppercase; }
@@ -318,10 +326,20 @@ table.tabela-pdf td{ padding:11px 4px; border-bottom:1px solid var(--line-1); }
         </div>
       </div>
 
-      <label class="chk-toggle reveal">
-        <input type="checkbox" id="chk-ocultar-medidas">
-        Ocultar medidas ao gerar o PDF
-      </label>
+      <div class="linha-opcoes-pdf reveal">
+        <label class="chk-toggle">
+          <input type="checkbox" id="chk-ocultar-medidas">
+          Ocultar medidas ao gerar o PDF
+        </label>
+        <div class="campo-medidas-conferidas">
+          <span class="label">Medidas conferidas no local</span>
+          <div class="opcoes-medidas">
+            <label><input type="radio" name="medidas-conferidas" value="nao" checked> Não</label>
+            <label><input type="radio" name="medidas-conferidas" value="sim"> Sim</label>
+            <input type="date" id="medidas-conferidas-data" style="display:none;">
+          </div>
+        </div>
+      </div>
 
       <div class="folha reveal">
         <h3>Dados do cliente</h3>
@@ -666,6 +684,18 @@ A instalação será realizada após finalização da obra, marcenaria e limpeza
 Isentamo-nos de responsabilidade por perfuração de canos, ralos e drenos não informados previamente pelo cliente ou arquiteto.
 Serviço de manutenção após 30 dias da instalação está sujeito à cobrança de taxa.`;
 
+const PAGAMENTO_PADRAO = `À vista = 3% de desconto.
+2x (sinal + 30 dias) = valor total.
+3x (sinal + 2x no cartão) = valor total.
+Parcelamento no cartão de crédito disponível na aprovação do pedido.`;
+
+document.querySelectorAll('input[name="medidas-conferidas"]').forEach(r=>{
+  r.addEventListener('change', ()=>{
+    document.getElementById('medidas-conferidas-data').style.display =
+      document.querySelector('input[name="medidas-conferidas"]:checked').value === 'sim' ? 'inline-block' : 'none';
+  });
+});
+
 /* ================= FORM ORÇAMENTO ================= */
 async function abrirOrcamento(id){
   document.querySelectorAll('.painel').forEach(p=>p.style.display='none');
@@ -680,7 +710,7 @@ async function abrirOrcamento(id){
     ESTADO.orcamentoAtual = {
       id:null, cliente_id:null, clientes:null, data_orcamento: new Date().toISOString().slice(0,10),
       status:'rascunho', prazo_id: ESTADO.prazos[0]?.id || null, validade_dias:10,
-      info_pagamento:'', observacoes: OBS_PADRAO, informacoes_adicionais: INFO_ADICIONAIS_PADRAO, itens:[]
+      info_pagamento: PAGAMENTO_PADRAO, observacoes: OBS_PADRAO, informacoes_adicionais: INFO_ADICIONAIS_PADRAO, itens:[]
     };
     document.getElementById('titulo-form-orc').textContent = 'Novo orçamento';
   }
@@ -696,6 +726,9 @@ async function abrirOrcamento(id){
   document.getElementById('orc-cliente-busca').value = '';
   document.getElementById('orc-cliente-selecionado').textContent = o.clientes ? `Selecionado: ${o.clientes.nome}` : '';
   document.getElementById('chk-ocultar-medidas').checked = false;
+  document.querySelector('input[name="medidas-conferidas"][value="nao"]').checked = true;
+  document.getElementById('medidas-conferidas-data').value = '';
+  document.getElementById('medidas-conferidas-data').style.display = 'none';
   document.getElementById('btn-duplicar-orc').style.display = o.id ? 'inline-flex' : 'none';
   document.getElementById('btn-excluir-orc').style.display = o.id ? 'inline-flex' : 'none';
 
@@ -985,16 +1018,46 @@ document.getElementById('btn-ver-pdf').onclick = ()=>{
 
   ULTIMO_PDF = { cliente, numero: o.numero, total };
 
+  const medidasConferidas = document.querySelector('input[name="medidas-conferidas"]:checked')?.value === 'sim';
+  const medidasData = document.getElementById('medidas-conferidas-data').value;
+  const medidasTexto = medidasConferidas
+    ? `Sim${medidasData ? ' — ' + new Date(medidasData+'T12:00').toLocaleDateString('pt-BR') : ''}`
+    : 'Não';
+
   let secoesExtras = '';
   if(obsGerais.trim()){
     secoesExtras += `<div class="pdf-secao"><h4>Observações</h4><ul>${textoParaLista(obsGerais)}</ul></div>`;
   }
+  secoesExtras += `
+    <div class="pdf-bloco-cliente" style="margin-top:clamp(28px,4vh,44px); margin-bottom:0;">
+      <div>
+        <span class="eyebrow-pdf">Prazo de entrega</span>
+        <div class="secundario">
+          ${prazoNome||'a combinar'}<br>
+          Contado após entrega do tecido, confirmação das medidas/modelo e aprovação do pedido.
+        </div>
+      </div>
+      <div class="lado-direito">
+        <span class="eyebrow-pdf">Medidas conferidas no local</span>
+        <div class="secundario">${medidasTexto}</div>
+      </div>
+    </div>`;
   if(pagamento.trim()){
-    secoesExtras += `<div class="pdf-secao"><h4>Informações de pagamento</h4><p>${pagamento.replace(/\n/g,'<br>')}</p></div>`;
+    secoesExtras += `<div class="pdf-secao"><h4>Condições de pagamento</h4><p>${pagamento.replace(/\n/g,'<br>')}</p></div>`;
   }
   if(infoAdicionais.trim()){
     secoesExtras += `<div class="pdf-secao"><h4>Informações adicionais</h4><ul>${textoParaLista(infoAdicionais)}</ul></div>`;
   }
+  secoesExtras += `
+    <div class="pdf-secao">
+      <h4>Dados para depósito</h4>
+      <p>
+        Beatriz de Mello Pádua Decorações<br>
+        Banco Santander · Agência 3630 · Conta corrente 13.007321-1<br>
+        CNPJ 08.859.828/0001-01 (Chave Pix)<br>
+        Enviar comprovante para renata@biapaduahome.com.br
+      </p>
+    </div>`;
 
   document.getElementById('conteudo-pdf').innerHTML = `
     <div class="folha-pdf">
@@ -1003,8 +1066,9 @@ document.getElementById('btn-ver-pdf').onclick = ()=>{
           <div class="marca">Bia Pádua Home</div>
           <div class="marca-sub">Almofadas · Colchas · Cortinas · Persianas · Tapeçaria</div>
           <div class="secundario" style="margin-top:10px;">
-            Rua Nebraska, 314 — Brooklin, São Paulo/SP<br>
-            11 99183-7361 · bia@biapaduahome.com.br
+            Rua Nebraska, 314 — casa 2 — Brooklin, São Paulo/SP<br>
+            11 99183-7361 · 11 99654-4070<br>
+            bia@biapaduahome.com.br · contato@biapaduahome.com.br
           </div>
         </div>
         <div>
@@ -1026,8 +1090,7 @@ document.getElementById('btn-ver-pdf').onclick = ()=>{
         <div class="lado-direito">
           <span class="eyebrow-pdf">Condições</span>
           <div class="secundario">
-            ${cliente.arquiteto_nome? 'Arquiteto(a): '+cliente.arquiteto_nome+'<br>':''}
-            Prazo: ${prazoNome||'a combinar'}
+            ${cliente.arquiteto_nome? 'Arquiteto(a): '+cliente.arquiteto_nome : '—'}
           </div>
         </div>
       </div>
