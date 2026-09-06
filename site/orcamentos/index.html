@@ -911,54 +911,74 @@ function lerMedidasConferidas(){
 }
 
 /* ---- salvar orçamento ---- */
+let SALVANDO_ORCAMENTO = false;
 async function salvarOrcamento({forcarRascunho=false, silencioso=false}={}){
-  const o = ESTADO.orcamentoAtual;
-  if(!o || !o.cliente_id){
-    if(!silencioso) toast('Selecione um cliente antes de salvar.');
-    return false;
+  if(SALVANDO_ORCAMENTO) return false;
+  SALVANDO_ORCAMENTO = true;
+  const btnSalvar = document.getElementById('btn-salvar-orc');
+  btnSalvar.disabled = true;
+  try{
+    const o = ESTADO.orcamentoAtual;
+    if(!o || !o.cliente_id){
+      if(!silencioso) toast('Selecione um cliente antes de salvar.');
+      return false;
+    }
+
+    const total = o.itens.reduce((s,i)=> s + (i.vl_total||0), 0);
+    const payload = {
+      cliente_id: o.cliente_id,
+      data_orcamento: document.getElementById('orc-data').value,
+      status: forcarRascunho ? 'rascunho' : document.getElementById('orc-status').value,
+      prazo_id: document.getElementById('orc-prazo').value || null,
+      validade_dias: parseInt(document.getElementById('orc-validade').value)||10,
+      info_pagamento: document.getElementById('orc-pagamento').value,
+      observacoes: document.getElementById('orc-obs').value,
+      informacoes_adicionais: document.getElementById('orc-info-adicionais').value,
+      vl_total: total,
+      ...(COLUNAS_MEDIDAS_CONFERIDAS_EXISTEM ? lerMedidasConferidas() : {})
+    };
+
+    const eraNovo = !o.id;
+    let orcamentoId = o.id;
+    if(orcamentoId){
+      const { error } = await sb.from('orcamentos').update(payload).eq('id', orcamentoId);
+      if(error){ if(!silencioso) toast('Erro ao salvar: '+error.message); return false; }
+    } else {
+      const { data, error } = await sb.from('orcamentos').insert(payload).select().single();
+      if(error){ if(!silencioso) toast('Erro ao salvar: '+error.message); return false; }
+      orcamentoId = data.id;
+      o.id = data.id;
+      o.numero = data.numero;
+      document.getElementById('btn-duplicar-orc').style.display = 'inline-flex';
+      document.getElementById('btn-excluir-orc').style.display = 'inline-flex';
+    }
+
+    // Insere os itens atuais antes de apagar os antigos: se a inserção falhar
+    // (rede, validação etc.), o orçamento não fica sem itens no meio do caminho.
+    const itensPayload = o.itens.map((it,idx)=>({
+      orcamento_id: orcamentoId, ordem: idx, ambiente: it.ambiente, produto: it.produto,
+      qtde: it.qtde, altura: it.altura, largura: it.largura, comprimento: it.comprimento,
+      metragem: it.metragem, vl_unitario: it.vl_unitario, vl_total: it.vl_total, obs: it.obs||''
+    }));
+    let novosIds = [];
+    if(itensPayload.length){
+      const { data: inseridos, error: errItens } = await sb.from('itens_orcamento').insert(itensPayload).select('id');
+      if(errItens){ if(!silencioso) toast('Erro ao salvar itens: '+errItens.message); return false; }
+      novosIds = inseridos.map(i=>i.id);
+    }
+    if(!eraNovo){
+      let queryLimpeza = sb.from('itens_orcamento').delete().eq('orcamento_id', orcamentoId);
+      if(novosIds.length) queryLimpeza = queryLimpeza.not('id', 'in', `(${novosIds.join(',')})`);
+      const { error: errLimpeza } = await queryLimpeza;
+      if(errLimpeza) console.error('Erro ao remover itens antigos:', errLimpeza);
+    }
+
+    if(forcarRascunho) document.getElementById('orc-status').value = 'rascunho';
+    return true;
+  } finally {
+    SALVANDO_ORCAMENTO = false;
+    btnSalvar.disabled = false;
   }
-
-  const total = o.itens.reduce((s,i)=> s + (i.vl_total||0), 0);
-  const payload = {
-    cliente_id: o.cliente_id,
-    data_orcamento: document.getElementById('orc-data').value,
-    status: forcarRascunho ? 'rascunho' : document.getElementById('orc-status').value,
-    prazo_id: document.getElementById('orc-prazo').value || null,
-    validade_dias: parseInt(document.getElementById('orc-validade').value)||10,
-    info_pagamento: document.getElementById('orc-pagamento').value,
-    observacoes: document.getElementById('orc-obs').value,
-    informacoes_adicionais: document.getElementById('orc-info-adicionais').value,
-    vl_total: total,
-    ...(COLUNAS_MEDIDAS_CONFERIDAS_EXISTEM ? lerMedidasConferidas() : {})
-  };
-
-  let orcamentoId = o.id;
-  if(orcamentoId){
-    const { error } = await sb.from('orcamentos').update(payload).eq('id', orcamentoId);
-    if(error){ if(!silencioso) toast('Erro ao salvar: '+error.message); return false; }
-    await sb.from('itens_orcamento').delete().eq('orcamento_id', orcamentoId);
-  } else {
-    const { data, error } = await sb.from('orcamentos').insert(payload).select().single();
-    if(error){ if(!silencioso) toast('Erro ao salvar: '+error.message); return false; }
-    orcamentoId = data.id;
-    o.id = data.id;
-    o.numero = data.numero;
-    document.getElementById('btn-duplicar-orc').style.display = 'inline-flex';
-    document.getElementById('btn-excluir-orc').style.display = 'inline-flex';
-  }
-
-  const itensPayload = o.itens.map((it,idx)=>({
-    orcamento_id: orcamentoId, ordem: idx, ambiente: it.ambiente, produto: it.produto,
-    qtde: it.qtde, altura: it.altura, largura: it.largura, comprimento: it.comprimento,
-    metragem: it.metragem, vl_unitario: it.vl_unitario, vl_total: it.vl_total, obs: it.obs||''
-  }));
-  if(itensPayload.length){
-    const { error: errItens } = await sb.from('itens_orcamento').insert(itensPayload);
-    if(errItens){ if(!silencioso) toast('Erro ao salvar itens: '+errItens.message); return false; }
-  }
-
-  if(forcarRascunho) document.getElementById('orc-status').value = 'rascunho';
-  return true;
 }
 
 document.getElementById('btn-salvar-orc').onclick = async ()=>{
@@ -972,6 +992,10 @@ document.getElementById('btn-salvar-orc').onclick = async ()=>{
 
 /* ---- duplicar orçamento ---- */
 document.getElementById('btn-duplicar-orc').onclick = async ()=>{
+  const btn = document.getElementById('btn-duplicar-orc');
+  if(btn.disabled) return;
+  btn.disabled = true;
+  try{
   const o = ESTADO.orcamentoAtual;
   if(!o.id) return;
   const payload = {
@@ -996,20 +1020,30 @@ document.getElementById('btn-duplicar-orc').onclick = async ()=>{
   if(itensPayload.length) await sb.from('itens_orcamento').insert(itensPayload);
   toast(`Orçamento duplicado como rascunho (#${data.numero}).`);
   abrirOrcamento(data.id);
+  } finally {
+    btn.disabled = false;
+  }
 };
 
 /* ---- excluir orçamento ---- */
 document.getElementById('btn-excluir-orc').onclick = async ()=>{
+  const btn = document.getElementById('btn-excluir-orc');
+  if(btn.disabled) return;
   const o = ESTADO.orcamentoAtual;
   if(!o.id) return;
   if(!confirm(`Excluir o orçamento #${o.numero}? Esta ação não pode ser desfeita.`)) return;
-  await sb.from('itens_orcamento').delete().eq('orcamento_id', o.id);
-  const { error } = await sb.from('orcamentos').delete().eq('id', o.id);
-  if(error){ toast('Erro ao excluir: '+error.message); return; }
-  toast('Orçamento excluído.');
-  document.getElementById('painel-form-orcamento').style.display='none';
-  document.getElementById('painel-orcamentos').style.display='block';
-  renderOrcamentos();
+  btn.disabled = true;
+  try{
+    await sb.from('itens_orcamento').delete().eq('orcamento_id', o.id);
+    const { error } = await sb.from('orcamentos').delete().eq('id', o.id);
+    if(error){ toast('Erro ao excluir: '+error.message); return; }
+    toast('Orçamento excluído.');
+    document.getElementById('painel-form-orcamento').style.display='none';
+    document.getElementById('painel-orcamentos').style.display='block';
+    renderOrcamentos();
+  } finally {
+    btn.disabled = false;
+  }
 };
 
 /* ================= PDF ================= */
@@ -1286,6 +1320,10 @@ document.getElementById('cli-cep').addEventListener('blur', async (e)=>{
 });
 
 document.getElementById('btn-salvar-cliente').onclick = async ()=>{
+  const btn = document.getElementById('btn-salvar-cliente');
+  if(btn.disabled) return;
+  btn.disabled = true;
+  try{
   const payload = {
     nome: document.getElementById('cli-nome').value.trim(),
     cpf: document.getElementById('cli-cpf').value.trim(),
@@ -1317,16 +1355,34 @@ document.getElementById('btn-salvar-cliente').onclick = async ()=>{
   document.getElementById('modal-cliente').classList.remove('ativo');
   await carregarTudo();
   renderClientes();
+  } finally {
+    btn.disabled = false;
+  }
 };
 
 document.getElementById('btn-excluir-cliente').onclick = async ()=>{
-  if(!confirm('Excluir este cliente?')) return;
-  const { error } = await sb.from('clientes').delete().eq('id', ESTADO.clienteEditando);
-  if(error){ toast('Erro: '+error.message); return; }
-  toast('Cliente excluído.');
-  document.getElementById('modal-cliente').classList.remove('ativo');
-  await carregarTudo();
-  renderClientes();
+  const btn = document.getElementById('btn-excluir-cliente');
+  if(btn.disabled) return;
+  btn.disabled = true;
+  try{
+    const { count, error: errVerifica } = await sb.from('orcamentos')
+      .select('id', {count:'exact', head:true})
+      .eq('cliente_id', ESTADO.clienteEditando);
+    if(errVerifica){ toast('Erro ao verificar orçamentos do cliente: '+errVerifica.message); return; }
+    if(count > 0){
+      toast(`Este cliente tem ${count} orçamento${count>1?'s':''} vinculado${count>1?'s':''} e não pode ser excluído.`);
+      return;
+    }
+    if(!confirm('Excluir este cliente?')) return;
+    const { error } = await sb.from('clientes').delete().eq('id', ESTADO.clienteEditando);
+    if(error){ toast('Erro: '+error.message); return; }
+    toast('Cliente excluído.');
+    document.getElementById('modal-cliente').classList.remove('ativo');
+    await carregarTudo();
+    renderClientes();
+  } finally {
+    btn.disabled = false;
+  }
 };
 
 /* ================= MATRIZ DE DADOS ================= */
