@@ -234,6 +234,12 @@ table.tabela-pdf td{ padding:11px 4px; border-bottom:1px solid var(--line-1); }
 #tela-acesso .btn:hover{ opacity:.9; }
 .erro-acesso{ min-height:1.4em; margin-top:16px; font-size:12px; color:#C99; letter-spacing:.04em; }
 
+.chk-toggle{
+  display:inline-flex; align-items:center; gap:9px; margin-bottom:24px;
+  font-size:11.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--gray-1); cursor:pointer;
+}
+.chk-toggle input{ accent-color:var(--gold); width:14px; height:14px; cursor:pointer; }
+
 .vazio{ text-align:center; padding:80px 20px; color:var(--gray-2); }
 .vazio .marca-medida{ font-family:'Marcellus',serif; font-size:15px; letter-spacing:.2em; color:var(--line-2); margin-bottom:14px; text-transform:uppercase; }
 
@@ -305,10 +311,17 @@ table.tabela-pdf td{ padding:11px 4px; border-bottom:1px solid var(--line-1); }
         </div>
         <div class="linha-acoes">
           <button class="btn btn-secundario" id="btn-voltar-lista">← Voltar</button>
+          <button class="btn btn-secundario" id="btn-duplicar-orc" style="display:none;">Duplicar</button>
+          <button class="btn btn-secundario" id="btn-excluir-orc" style="display:none;">Excluir</button>
           <button class="btn btn-secundario" id="btn-ver-pdf">Pré-visualizar PDF</button>
           <button class="btn btn-primary" id="btn-salvar-orc">Salvar</button>
         </div>
       </div>
+
+      <label class="chk-toggle reveal">
+        <input type="checkbox" id="chk-ocultar-medidas">
+        Ocultar medidas ao gerar o PDF
+      </label>
 
       <div class="folha reveal">
         <h3>Dados do cliente</h3>
@@ -399,6 +412,7 @@ table.tabela-pdf td{ padding:11px 4px; border-bottom:1px solid var(--line-1); }
         </div>
         <div class="linha-acoes">
           <button class="btn btn-secundario" id="btn-voltar-form">← Voltar à ficha</button>
+          <button class="btn btn-secundario" id="btn-enviar-email">Enviar por e-mail</button>
           <button class="btn btn-primary" id="btn-imprimir">Baixar / Imprimir PDF</button>
         </div>
       </div>
@@ -562,11 +576,18 @@ if(localStorage.getItem(CHAVE_ACESSO) === '1'){
 
 /* ================= NAVEGAÇÃO ================= */
 document.querySelectorAll('.rail-nav button').forEach(btn=>{
-  btn.onclick = ()=>{
+  btn.onclick = async ()=>{
+    const alvo = btn.dataset.painel;
+    const formAberto = document.getElementById('painel-form-orcamento').style.display !== 'none';
+    if(formAberto && (alvo==='clientes' || alvo==='matriz')){
+      const salvou = await salvarOrcamento({forcarRascunho:true, silencioso:true});
+      if(salvou) toast('Orçamento salvo automaticamente como rascunho.');
+    }
     document.querySelectorAll('.rail-nav button').forEach(b=>b.classList.remove('ativo'));
     btn.classList.add('ativo');
     document.querySelectorAll('.painel').forEach(p=>p.style.display='none');
-    document.getElementById('painel-'+btn.dataset.painel).style.display='block';
+    document.getElementById('painel-'+alvo).style.display='block';
+    if(alvo==='orcamentos') renderOrcamentos();
   };
 });
 
@@ -674,6 +695,9 @@ async function abrirOrcamento(id){
   document.getElementById('orc-info-adicionais').value = o.informacoes_adicionais || '';
   document.getElementById('orc-cliente-busca').value = '';
   document.getElementById('orc-cliente-selecionado').textContent = o.clientes ? `Selecionado: ${o.clientes.nome}` : '';
+  document.getElementById('chk-ocultar-medidas').checked = false;
+  document.getElementById('btn-duplicar-orc').style.display = o.id ? 'inline-flex' : 'none';
+  document.getElementById('btn-excluir-orc').style.display = o.id ? 'inline-flex' : 'none';
 
   renderItens();
 }
@@ -808,15 +832,18 @@ function atualizarTotalGeral(){
 }
 
 /* ---- salvar orçamento ---- */
-document.getElementById('btn-salvar-orc').onclick = async ()=>{
+async function salvarOrcamento({forcarRascunho=false, silencioso=false}={}){
   const o = ESTADO.orcamentoAtual;
-  if(!o.cliente_id){ toast('Selecione um cliente antes de salvar.'); return; }
+  if(!o || !o.cliente_id){
+    if(!silencioso) toast('Selecione um cliente antes de salvar.');
+    return false;
+  }
 
   const total = o.itens.reduce((s,i)=> s + (i.vl_total||0), 0);
   const payload = {
     cliente_id: o.cliente_id,
     data_orcamento: document.getElementById('orc-data').value,
-    status: document.getElementById('orc-status').value,
+    status: forcarRascunho ? 'rascunho' : document.getElementById('orc-status').value,
     prazo_id: document.getElementById('orc-prazo').value || null,
     validade_dias: parseInt(document.getElementById('orc-validade').value)||10,
     info_pagamento: document.getElementById('orc-pagamento').value,
@@ -828,14 +855,16 @@ document.getElementById('btn-salvar-orc').onclick = async ()=>{
   let orcamentoId = o.id;
   if(orcamentoId){
     const { error } = await sb.from('orcamentos').update(payload).eq('id', orcamentoId);
-    if(error){ toast('Erro ao salvar: '+error.message); return; }
+    if(error){ if(!silencioso) toast('Erro ao salvar: '+error.message); return false; }
     await sb.from('itens_orcamento').delete().eq('orcamento_id', orcamentoId);
   } else {
     const { data, error } = await sb.from('orcamentos').insert(payload).select().single();
-    if(error){ toast('Erro ao salvar: '+error.message); return; }
+    if(error){ if(!silencioso) toast('Erro ao salvar: '+error.message); return false; }
     orcamentoId = data.id;
     o.id = data.id;
     o.numero = data.numero;
+    document.getElementById('btn-duplicar-orc').style.display = 'inline-flex';
+    document.getElementById('btn-excluir-orc').style.display = 'inline-flex';
   }
 
   const itensPayload = o.itens.map((it,idx)=>({
@@ -845,10 +874,58 @@ document.getElementById('btn-salvar-orc').onclick = async ()=>{
   }));
   if(itensPayload.length){
     const { error: errItens } = await sb.from('itens_orcamento').insert(itensPayload);
-    if(errItens){ toast('Erro ao salvar itens: '+errItens.message); return; }
+    if(errItens){ if(!silencioso) toast('Erro ao salvar itens: '+errItens.message); return false; }
   }
 
+  if(forcarRascunho) document.getElementById('orc-status').value = 'rascunho';
+  return true;
+}
+
+document.getElementById('btn-salvar-orc').onclick = async ()=>{
+  const ok = await salvarOrcamento();
+  if(!ok) return;
   toast('Orçamento salvo com sucesso.');
+  document.getElementById('painel-form-orcamento').style.display='none';
+  document.getElementById('painel-orcamentos').style.display='block';
+  renderOrcamentos();
+};
+
+/* ---- duplicar orçamento ---- */
+document.getElementById('btn-duplicar-orc').onclick = async ()=>{
+  const o = ESTADO.orcamentoAtual;
+  if(!o.id) return;
+  const payload = {
+    cliente_id: o.cliente_id,
+    data_orcamento: new Date().toISOString().slice(0,10),
+    status: 'rascunho',
+    prazo_id: document.getElementById('orc-prazo').value || null,
+    validade_dias: parseInt(document.getElementById('orc-validade').value)||10,
+    info_pagamento: document.getElementById('orc-pagamento').value,
+    observacoes: document.getElementById('orc-obs').value,
+    informacoes_adicionais: document.getElementById('orc-info-adicionais').value,
+    vl_total: o.itens.reduce((s,i)=> s + (i.vl_total||0), 0)
+  };
+  const { data, error } = await sb.from('orcamentos').insert(payload).select().single();
+  if(error){ toast('Erro ao duplicar: '+error.message); return; }
+  const itensPayload = o.itens.map((it,idx)=>({
+    orcamento_id: data.id, ordem: idx, ambiente: it.ambiente, produto: it.produto,
+    qtde: it.qtde, altura: it.altura, largura: it.largura, comprimento: it.comprimento,
+    metragem: it.metragem, vl_unitario: it.vl_unitario, vl_total: it.vl_total, obs: it.obs||''
+  }));
+  if(itensPayload.length) await sb.from('itens_orcamento').insert(itensPayload);
+  toast(`Orçamento duplicado como rascunho (#${data.numero}).`);
+  abrirOrcamento(data.id);
+};
+
+/* ---- excluir orçamento ---- */
+document.getElementById('btn-excluir-orc').onclick = async ()=>{
+  const o = ESTADO.orcamentoAtual;
+  if(!o.id) return;
+  if(!confirm(`Excluir o orçamento #${o.numero}? Esta ação não pode ser desfeita.`)) return;
+  await sb.from('itens_orcamento').delete().eq('orcamento_id', o.id);
+  const { error } = await sb.from('orcamentos').delete().eq('id', o.id);
+  if(error){ toast('Erro ao excluir: '+error.message); return; }
+  toast('Orçamento excluído.');
   document.getElementById('painel-form-orcamento').style.display='none';
   document.getElementById('painel-orcamentos').style.display='block';
   renderOrcamentos();
@@ -858,11 +935,23 @@ document.getElementById('btn-salvar-orc').onclick = async ()=>{
 function textoParaLista(texto){
   return (texto||'').split('\n').map(l=>l.trim()).filter(Boolean).map(l=>`<li>${l}</li>`).join('');
 }
+function formatarMedidas(it){
+  const dims = [];
+  if(it.largura) dims.push(`L ${it.largura}`);
+  if(it.altura) dims.push(`A ${it.altura}`);
+  if(it.comprimento) dims.push(`C ${it.comprimento}`);
+  let texto = dims.join(' × ');
+  if(it.metragem) texto += (texto ? ' · ' : '') + `${it.metragem} m`;
+  return texto || '—';
+}
+
+let ULTIMO_PDF = null;
 
 document.getElementById('btn-ver-pdf').onclick = ()=>{
   const o = ESTADO.orcamentoAtual;
   const cliente = o.clientes || {};
   const itens = o.itens;
+  const mostrarMedidas = !document.getElementById('chk-ocultar-medidas').checked;
 
   // agrupar por ambiente, preservando ordem de primeira aparição
   const grupos = [];
@@ -880,17 +969,21 @@ document.getElementById('btn-ver-pdf').onclick = ()=>{
   const obsGerais = document.getElementById('orc-obs').value;
   const infoAdicionais = document.getElementById('orc-info-adicionais').value;
 
+  const numColunas = mostrarMedidas ? 4 : 3;
   let linhasHtml = '';
   grupos.forEach(g=>{
-    linhasHtml += `<tr class="linha-grupo-ambiente"><td colspan="3">${g.ambiente}</td></tr>`;
+    linhasHtml += `<tr class="linha-grupo-ambiente"><td colspan="${numColunas}">${g.ambiente}</td></tr>`;
     g.itens.forEach(it=>{
       linhasHtml += `<tr>
         <td>${it.produto||''}</td>
+        ${mostrarMedidas ? `<td class="mono">${formatarMedidas(it)}</td>` : ''}
         <td class="mono" style="text-align:center;">${it.qtde||0}</td>
         <td class="mono" style="text-align:right;">${fmtMoeda(it.vl_total)}</td>
       </tr>`;
     });
   });
+
+  ULTIMO_PDF = { cliente, numero: o.numero, total };
 
   let secoesExtras = '';
   if(obsGerais.trim()){
@@ -941,7 +1034,12 @@ document.getElementById('btn-ver-pdf').onclick = ()=>{
 
       <span class="eyebrow-pdf">Itens do orçamento</span>
       <table class="tabela-pdf">
-        <thead><tr><th>Produto</th><th style="text-align:center;">Qtde</th><th style="text-align:right;">Valor</th></tr></thead>
+        <thead><tr>
+          <th>Produto</th>
+          ${mostrarMedidas ? '<th>Medidas</th>' : ''}
+          <th style="text-align:center;">Qtde</th>
+          <th style="text-align:right;">Valor</th>
+        </tr></thead>
         <tbody>${linhasHtml}</tbody>
       </table>
       <div class="pdf-total">
@@ -964,6 +1062,18 @@ document.getElementById('btn-voltar-form').onclick = ()=>{
   document.getElementById('painel-form-orcamento').style.display='block';
 };
 document.getElementById('btn-imprimir').onclick = ()=> window.print();
+document.getElementById('btn-enviar-email').onclick = ()=>{
+  if(!ULTIMO_PDF) return;
+  const { cliente, numero, total } = ULTIMO_PDF;
+  const assunto = encodeURIComponent(`Orçamento ${numero?('#'+numero):''} — Bia Pádua Home`);
+  const corpo = encodeURIComponent(
+    `Olá ${cliente?.nome||''},\n\n`+
+    `Segue o orçamento no valor de ${fmtMoeda(total)}.\n`+
+    `Salve ou imprima o PDF ("Baixar / Imprimir PDF") e anexe-o a este e-mail antes de enviar.\n\n`+
+    `Atenciosamente,\nBia Pádua Home`
+  );
+  window.location.href = `mailto:${cliente?.email||''}?subject=${assunto}&body=${corpo}`;
+};
 
 /* ================= CLIENTES ================= */
 async function renderClientes(filtro=''){
