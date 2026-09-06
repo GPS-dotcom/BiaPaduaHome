@@ -241,6 +241,11 @@ table.tabela-pdf td{ padding:11px 4px; border-bottom:1px solid var(--line-1); }
 #lista-historico-cliente .lista-item:hover .nome{ color:inherit; }
 #lista-historico-cliente .nome{ font-size:14.5px; }
 
+#lista-lixeira-orcamentos .lista-item, #lista-lixeira-clientes .lista-item{ cursor:default; padding:12px 0; }
+#lista-lixeira-orcamentos .lista-item:hover, #lista-lixeira-clientes .lista-item:hover{ padding-left:4px; }
+#lista-lixeira-orcamentos .lista-item:hover .nome, #lista-lixeira-clientes .lista-item:hover .nome{ color:inherit; }
+#lista-lixeira-orcamentos .nome, #lista-lixeira-clientes .nome{ font-size:14.5px; }
+
 .cliente-fixo{ display:flex; align-items:center; gap:14px; padding:11px 0; font-size:15.5px; color:var(--charcoal); }
 .cliente-fixo .btn-icone{ font-size:11px; padding:5px 10px; }
 
@@ -299,6 +304,7 @@ table.tabela-pdf td{ padding:11px 4px; border-bottom:1px solid var(--line-1); }
       <button data-painel="orcamentos" class="ativo"><span class="num">01</span> Orçamentos</button>
       <button data-painel="clientes"><span class="num">02</span> Clientes</button>
       <button data-painel="matriz"><span class="num">03</span> Matriz de dados</button>
+      <button data-painel="lixeira"><span class="num">04</span> Lixeira</button>
     </nav>
     <div class="rail-foot">
       <div class="quem">Acesso via link + senha · uso interno</div>
@@ -490,6 +496,26 @@ table.tabela-pdf td{ padding:11px 4px; border-bottom:1px solid var(--line-1); }
       </div>
     </section>
 
+    <!-- PAINEL: LIXEIRA -->
+    <section id="painel-lixeira" class="painel" style="display:none;">
+      <div class="painel-head">
+        <div>
+          <span class="eyebrow">Itens excluídos</span>
+          <h2>Lixeira</h2>
+        </div>
+      </div>
+      <div class="grid2">
+        <div class="folha reveal">
+          <h3>Orçamentos</h3>
+          <div id="lista-lixeira-orcamentos"></div>
+        </div>
+        <div class="folha reveal">
+          <h3>Clientes</h3>
+          <div id="lista-lixeira-clientes"></div>
+        </div>
+      </div>
+    </section>
+
   </main>
 </div>
 
@@ -626,13 +652,14 @@ document.querySelectorAll('.rail-nav button').forEach(btn=>{
     document.getElementById('painel-'+alvo).style.display='block';
     if(alvo==='orcamentos') renderOrcamentos();
     if(alvo==='matriz') renderMatriz();
+    if(alvo==='lixeira') renderLixeira();
   };
 });
 
 /* ================= CARREGAR DADOS ================= */
 async function carregarTudo(){
   const [c, a, p, pr] = await Promise.all([
-    sb.from('clientes').select('*').order('nome'),
+    sb.from('clientes').select('*').eq('ativo', true).order('nome'),
     sb.from('ambientes').select('*').eq('ativo', true).order('nome'),
     sb.from('produtos').select('*').eq('ativo', true).order('nome'),
     sb.from('prazos').select('*').eq('ativo', true).order('nome'),
@@ -655,6 +682,7 @@ async function renderOrcamentos(filtro=''){
   cont.innerHTML = '<div class="vazio">Carregando...</div>';
   const { data, error } = await sb.from('orcamentos')
     .select('*, clientes(nome), prazos(nome)')
+    .eq('ativo', true)
     .order('created_at', {ascending:false});
   if(error){ cont.innerHTML = `<div class="vazio">Erro ao carregar: ${error.message}</div>`; return; }
 
@@ -722,8 +750,16 @@ async function abrirOrcamento(id){
   document.getElementById('painel-form-orcamento').style.display='block';
 
   if(id){
-    const { data: orc } = await sb.from('orcamentos').select('*, clientes(*)').eq('id', id).single();
-    const { data: itens } = await sb.from('itens_orcamento').select('*').eq('orcamento_id', id).order('ordem');
+    const { data: orc, error: errOrc } = await sb.from('orcamentos').select('*, clientes(*)').eq('id', id).maybeSingle();
+    if(errOrc || !orc){
+      toast('Este orçamento não foi encontrado — pode ter sido excluído.');
+      document.getElementById('painel-form-orcamento').style.display='none';
+      document.getElementById('painel-orcamentos').style.display='block';
+      renderOrcamentos();
+      return;
+    }
+    const { data: itens, error: errItens } = await sb.from('itens_orcamento').select('*').eq('orcamento_id', id).order('ordem');
+    if(errItens) toast('Erro ao carregar itens: '+errItens.message);
     ESTADO.orcamentoAtual = { ...orc, itens: itens || [] };
     document.getElementById('titulo-form-orc').textContent = `Orçamento #${orc.numero}`;
   } else {
@@ -941,14 +977,26 @@ async function salvarOrcamento({forcarRascunho=false, silencioso=false}={}){
     const eraNovo = !o.id;
     let orcamentoId = o.id;
     if(orcamentoId){
-      const { error } = await sb.from('orcamentos').update(payload).eq('id', orcamentoId);
+      if(!silencioso && o.updated_at){
+        const { data: atual, error: errCheck } = await sb.from('orcamentos').select('updated_at').eq('id', orcamentoId).maybeSingle();
+        if(errCheck){ toast('Erro ao verificar orçamento: '+errCheck.message); return false; }
+        if(!atual){ toast('Este orçamento não existe mais — pode ter sido excluído por outra pessoa.'); return false; }
+        if(atual.updated_at !== o.updated_at){
+          const sobrescrever = confirm('Este orçamento foi alterado por outra pessoa desde que você o abriu. Salvar mesmo assim e sobrescrever as mudanças dela?');
+          if(!sobrescrever) return false;
+        }
+      }
+      payload.updated_at = new Date().toISOString();
+      const { data: atualizado, error } = await sb.from('orcamentos').update(payload).eq('id', orcamentoId).select('updated_at').single();
       if(error){ if(!silencioso) toast('Erro ao salvar: '+error.message); return false; }
+      if(atualizado) o.updated_at = atualizado.updated_at;
     } else {
       const { data, error } = await sb.from('orcamentos').insert(payload).select().single();
       if(error){ if(!silencioso) toast('Erro ao salvar: '+error.message); return false; }
       orcamentoId = data.id;
       o.id = data.id;
       o.numero = data.numero;
+      o.updated_at = data.updated_at;
       document.getElementById('btn-duplicar-orc').style.display = 'inline-flex';
       document.getElementById('btn-excluir-orc').style.display = 'inline-flex';
     }
@@ -1031,13 +1079,12 @@ document.getElementById('btn-excluir-orc').onclick = async ()=>{
   if(btn.disabled) return;
   const o = ESTADO.orcamentoAtual;
   if(!o.id) return;
-  if(!confirm(`Excluir o orçamento #${o.numero}? Esta ação não pode ser desfeita.`)) return;
+  if(!confirm(`Mover o orçamento #${o.numero} para a lixeira?`)) return;
   btn.disabled = true;
   try{
-    await sb.from('itens_orcamento').delete().eq('orcamento_id', o.id);
-    const { error } = await sb.from('orcamentos').delete().eq('id', o.id);
+    const { error } = await sb.from('orcamentos').update({ativo:false}).eq('id', o.id);
     if(error){ toast('Erro ao excluir: '+error.message); return; }
-    toast('Orçamento excluído.');
+    toast('Orçamento movido para a lixeira.');
     document.getElementById('painel-form-orcamento').style.display='none';
     document.getElementById('painel-orcamentos').style.display='block';
     renderOrcamentos();
@@ -1286,6 +1333,7 @@ async function renderHistoricoCliente(clienteId){
   const { data, error } = await sb.from('orcamentos')
     .select('numero, data_orcamento, status, vl_total')
     .eq('cliente_id', clienteId)
+    .eq('ativo', true)
     .order('numero', {ascending:false});
   if(error){ cont.innerHTML = '<div class="vazio" style="padding:16px 0;">Erro ao carregar histórico.</div>'; return; }
   if(!data || data.length===0){ cont.innerHTML = '<div class="vazio" style="padding:16px 0;">Nenhum orçamento ainda para este cliente.</div>'; return; }
@@ -1365,18 +1413,10 @@ document.getElementById('btn-excluir-cliente').onclick = async ()=>{
   if(btn.disabled) return;
   btn.disabled = true;
   try{
-    const { count, error: errVerifica } = await sb.from('orcamentos')
-      .select('id', {count:'exact', head:true})
-      .eq('cliente_id', ESTADO.clienteEditando);
-    if(errVerifica){ toast('Erro ao verificar orçamentos do cliente: '+errVerifica.message); return; }
-    if(count > 0){
-      toast(`Este cliente tem ${count} orçamento${count>1?'s':''} vinculado${count>1?'s':''} e não pode ser excluído.`);
-      return;
-    }
-    if(!confirm('Excluir este cliente?')) return;
-    const { error } = await sb.from('clientes').delete().eq('id', ESTADO.clienteEditando);
+    if(!confirm('Mover este cliente para a lixeira?')) return;
+    const { error } = await sb.from('clientes').update({ativo:false}).eq('id', ESTADO.clienteEditando);
     if(error){ toast('Erro: '+error.message); return; }
-    toast('Cliente excluído.');
+    toast('Cliente movido para a lixeira.');
     document.getElementById('modal-cliente').classList.remove('ativo');
     await carregarTudo();
     renderClientes();
@@ -1406,6 +1446,72 @@ function renderMatriz(){
       renderMatriz();
     };
   });
+}
+
+/* ================= LIXEIRA ================= */
+async function renderLixeira(){
+  const contOrc = document.getElementById('lista-lixeira-orcamentos');
+  contOrc.innerHTML = '<div class="vazio" style="padding:16px 0;">Carregando...</div>';
+  const { data: orcs, error: errOrc } = await sb.from('orcamentos')
+    .select('id, numero, data_orcamento, status, vl_total, clientes(nome)')
+    .eq('ativo', false)
+    .order('numero', {ascending:false});
+  if(errOrc){
+    contOrc.innerHTML = '<div class="vazio" style="padding:16px 0;">Erro ao carregar.</div>';
+  } else if(!orcs || orcs.length===0){
+    contOrc.innerHTML = '<div class="vazio" style="padding:16px 0;">Nenhum orçamento na lixeira.</div>';
+  } else {
+    contOrc.innerHTML = orcs.map(o=>`
+      <div class="lista-item">
+        <div>
+          <div class="nome">#${o.numero} — ${o.clientes?.nome || 'Sem cliente'}</div>
+          <div class="meta">${new Date(o.data_orcamento).toLocaleDateString('pt-BR')} · ${fmtMoeda(o.vl_total)}</div>
+        </div>
+        <button class="btn-icone btn-restaurar-orc" data-id="${o.id}">Restaurar</button>
+      </div>
+    `).join('');
+    contOrc.querySelectorAll('.btn-restaurar-orc').forEach(btn=>{
+      btn.onclick = async ()=>{
+        btn.disabled = true;
+        const { error } = await sb.from('orcamentos').update({ativo:true}).eq('id', btn.dataset.id);
+        if(error){ toast('Erro ao restaurar: '+error.message); btn.disabled = false; return; }
+        toast('Orçamento restaurado.');
+        renderLixeira();
+      };
+    });
+  }
+
+  const contCli = document.getElementById('lista-lixeira-clientes');
+  contCli.innerHTML = '<div class="vazio" style="padding:16px 0;">Carregando...</div>';
+  const { data: clis, error: errCli } = await sb.from('clientes')
+    .select('id, nome, cidade, uf')
+    .eq('ativo', false)
+    .order('nome');
+  if(errCli){
+    contCli.innerHTML = '<div class="vazio" style="padding:16px 0;">Erro ao carregar.</div>';
+  } else if(!clis || clis.length===0){
+    contCli.innerHTML = '<div class="vazio" style="padding:16px 0;">Nenhum cliente na lixeira.</div>';
+  } else {
+    contCli.innerHTML = clis.map(c=>`
+      <div class="lista-item">
+        <div>
+          <div class="nome">${c.nome}</div>
+          <div class="meta">${c.cidade||''} ${c.uf||''}</div>
+        </div>
+        <button class="btn-icone btn-restaurar-cli" data-id="${c.id}">Restaurar</button>
+      </div>
+    `).join('');
+    contCli.querySelectorAll('.btn-restaurar-cli').forEach(btn=>{
+      btn.onclick = async ()=>{
+        btn.disabled = true;
+        const { error } = await sb.from('clientes').update({ativo:true}).eq('id', btn.dataset.id);
+        if(error){ toast('Erro ao restaurar: '+error.message); btn.disabled = false; return; }
+        toast('Cliente restaurado.');
+        await carregarTudo();
+        renderLixeira();
+      };
+    });
+  }
 }
 
 async function garantirReferencia(tabela, nome){
