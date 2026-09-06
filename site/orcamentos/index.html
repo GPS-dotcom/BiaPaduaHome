@@ -866,7 +866,7 @@ function atualizarTotalGeral(){
 
 // Mude para true depois de rodar no Supabase o SQL que cria as colunas
 // medidas_conferidas e medidas_conferidas_data na tabela orcamentos.
-const COLUNAS_MEDIDAS_CONFERIDAS_EXISTEM = false;
+const COLUNAS_MEDIDAS_CONFERIDAS_EXISTEM = true;
 
 function lerMedidasConferidas(){
   const sim = document.querySelector('input[name="medidas-conferidas"]:checked')?.value === 'sim';
