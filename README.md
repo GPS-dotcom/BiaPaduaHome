@@ -114,7 +114,7 @@ Estado mínimo, local:
 - Texto sobre escuro: `#E8E2D8` (+ alfas 0.8 / 0.6 / 0.45 / 0.35 / 0.14)
 
 **Tipografia** (Google Fonts)
-- Display/títulos: `Bodoni Moda`, 400–500 (variável, eixo óptico 6–96 — atualizado a partir do `Marcellus` original deste handoff).
+- Display/títulos: `Marcellus`, 400 apenas.
 - Texto/UI: `Jost`, 300–500.
 - Escala: H1 `clamp(30px, 5.4vw, 62px)` / H2 `clamp(24px, 3.6vw, 42px)` / H3 card `clamp(18px, 1.6vw, 23px)` / corpo 15.5px / secundário 13.5px / meta 12.5px / label 11–11.5px / eyebrow 10.5px.
 - Letter-spacing: wordmark 0.26em · eyebrow 0.30–0.34em · nav 0.22em · label 0.16–0.20em · legal 0.14em.
