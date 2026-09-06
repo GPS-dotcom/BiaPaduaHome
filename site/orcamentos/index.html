@@ -234,6 +234,16 @@ table.tabela-pdf td{ padding:11px 4px; border-bottom:1px solid var(--line-1); }
 #tela-acesso .btn:hover{ opacity:.9; }
 .erro-acesso{ min-height:1.4em; margin-top:16px; font-size:12px; color:#C99; letter-spacing:.04em; }
 
+#historico-cliente{ margin-top:24px; padding-top:20px; border-top:1px solid var(--line-1); }
+#historico-cliente .label{ display:block; margin-bottom:10px; }
+#lista-historico-cliente .lista-item{ cursor:default; padding:12px 0; }
+#lista-historico-cliente .lista-item:hover{ padding-left:4px; }
+#lista-historico-cliente .lista-item:hover .nome{ color:inherit; }
+#lista-historico-cliente .nome{ font-size:14.5px; }
+
+.cliente-fixo{ display:flex; align-items:center; gap:14px; padding:11px 0; font-size:15.5px; color:var(--charcoal); }
+.cliente-fixo .btn-icone{ font-size:11px; padding:5px 10px; }
+
 .linha-opcoes-pdf{ display:flex; flex-wrap:wrap; align-items:center; gap:16px 32px; margin-bottom:24px; }
 .chk-toggle{
   display:inline-flex; align-items:center; gap:9px;
@@ -346,6 +356,10 @@ table.tabela-pdf td{ padding:11px 4px; border-bottom:1px solid var(--line-1); }
         <div class="grid3">
           <div class="campo autocomplete-wrap">
             <label>Cliente</label>
+            <div id="orc-cliente-fixo" class="cliente-fixo" style="display:none;">
+              <span id="orc-cliente-fixo-nome"></span>
+              <button type="button" class="btn-icone" id="btn-trocar-cliente">Trocar</button>
+            </div>
             <input type="text" id="orc-cliente-busca" placeholder="Buscar cliente cadastrado...">
             <div id="orc-cliente-lista" class="autocomplete-lista" style="display:none;"></div>
           </div>
@@ -363,7 +377,6 @@ table.tabela-pdf td{ padding:11px 4px; border-bottom:1px solid var(--line-1); }
             </select>
           </div>
         </div>
-        <div id="orc-cliente-selecionado" style="margin-top:10px; font-size:0.85rem; color:var(--ink-soft);"></div>
       </div>
 
       <div class="folha reveal">
@@ -492,7 +505,9 @@ table.tabela-pdf td{ padding:11px 4px; border-bottom:1px solid var(--line-1); }
       <div class="campo"><label>Telefone</label><input type="text" id="cli-telefone"></div>
       <div class="campo"><label>CEP</label><input type="text" id="cli-cep" placeholder="00000-000"></div>
       <div class="campo"><label>Cidade</label><input type="text" id="cli-cidade"></div>
-      <div class="campo" style="grid-column:span 2;"><label>Endereço</label><input type="text" id="cli-endereco"></div>
+      <div class="campo"><label>Endereço</label><input type="text" id="cli-endereco"></div>
+      <div class="campo"><label>Número</label><input type="text" id="cli-numero"></div>
+      <div class="campo"><label>Complemento</label><input type="text" id="cli-complemento" placeholder="Apto, bloco, casa..."></div>
       <div class="campo"><label>Bairro</label><input type="text" id="cli-bairro"></div>
       <div class="campo"><label>UF</label><input type="text" id="cli-uf" maxlength="2"></div>
       <div class="campo"><label>Arquiteto(a)</label><input type="text" id="cli-arq-nome"></div>
@@ -501,6 +516,10 @@ table.tabela-pdf td{ padding:11px 4px; border-bottom:1px solid var(--line-1); }
     <div class="linha-acoes">
       <button class="btn btn-primary" id="btn-salvar-cliente">Salvar cliente</button>
       <button class="btn btn-secundario" id="btn-excluir-cliente" style="display:none;">Excluir</button>
+    </div>
+    <div id="historico-cliente" style="display:none;">
+      <span class="label">Histórico de orçamentos</span>
+      <div id="lista-historico-cliente"></div>
     </div>
   </div>
 </div>
@@ -606,6 +625,7 @@ document.querySelectorAll('.rail-nav button').forEach(btn=>{
     document.querySelectorAll('.painel').forEach(p=>p.style.display='none');
     document.getElementById('painel-'+alvo).style.display='block';
     if(alvo==='orcamentos') renderOrcamentos();
+    if(alvo==='matriz') renderMatriz();
   };
 });
 
@@ -724,7 +744,10 @@ async function abrirOrcamento(id){
   document.getElementById('orc-obs').value = o.observacoes || '';
   document.getElementById('orc-info-adicionais').value = o.informacoes_adicionais || '';
   document.getElementById('orc-cliente-busca').value = '';
-  document.getElementById('orc-cliente-selecionado').textContent = o.clientes ? `Selecionado: ${o.clientes.nome}` : '';
+  const temClienteFixo = !!(o.id && o.cliente_id);
+  document.getElementById('orc-cliente-fixo').style.display = temClienteFixo ? 'flex' : 'none';
+  document.getElementById('orc-cliente-busca').style.display = temClienteFixo ? 'none' : 'block';
+  document.getElementById('orc-cliente-fixo-nome').textContent = o.clientes ? o.clientes.nome : '';
   document.getElementById('chk-ocultar-medidas').checked = false;
   document.querySelector(`input[name="medidas-conferidas"][value="${o.medidas_conferidas ? 'sim' : 'nao'}"]`).checked = true;
   document.getElementById('medidas-conferidas-data').value = o.medidas_conferidas_data || '';
@@ -750,11 +773,18 @@ buscaCliente.oninput = ()=>{
       const c = ESTADO.clientes.find(x=>x.id===el.dataset.id);
       ESTADO.orcamentoAtual.cliente_id = c.id;
       ESTADO.orcamentoAtual.clientes = c;
-      document.getElementById('orc-cliente-selecionado').textContent = `Selecionado: ${c.nome}`;
+      document.getElementById('orc-cliente-fixo-nome').textContent = c.nome;
+      document.getElementById('orc-cliente-fixo').style.display = 'flex';
+      document.getElementById('orc-cliente-busca').style.display = 'none';
       buscaCliente.value = '';
       lista.style.display='none';
     };
   });
+};
+document.getElementById('btn-trocar-cliente').onclick = ()=>{
+  document.getElementById('orc-cliente-fixo').style.display = 'none';
+  document.getElementById('orc-cliente-busca').style.display = 'block';
+  document.getElementById('orc-cliente-busca').focus();
 };
 document.addEventListener('click', (e)=>{
   if(!e.target.closest('.autocomplete-wrap')){
@@ -845,6 +875,8 @@ function renderItens(){
         };
       });
     };
+    inAmb.addEventListener('blur', ()=> setTimeout(()=> garantirReferencia('ambientes', inAmb.value), 150));
+    inProd.addEventListener('blur', ()=> setTimeout(()=> garantirReferencia('produtos', inProd.value), 150));
 
     tr.querySelector('.btn-remover-item').onclick = ()=>{
       itens.splice(idx,1);
@@ -867,6 +899,10 @@ function atualizarTotalGeral(){
 // Mude para true depois de rodar no Supabase o SQL que cria as colunas
 // medidas_conferidas e medidas_conferidas_data na tabela orcamentos.
 const COLUNAS_MEDIDAS_CONFERIDAS_EXISTEM = true;
+
+// Mude para true depois de rodar no Supabase o SQL que cria as colunas
+// numero e complemento na tabela clientes.
+const COLUNAS_ENDERECO_DETALHADO_EXISTEM = false;
 
 function lerMedidasConferidas(){
   const sim = document.querySelector('input[name="medidas-conferidas"]:checked')?.value === 'sim';
@@ -1096,7 +1132,7 @@ document.getElementById('btn-ver-pdf').onclick = ()=>{
           <span class="eyebrow-pdf">Cliente</span>
           <div class="titulo-cliente">${cliente.nome||'—'}</div>
           <div class="secundario">
-            ${cliente.endereco||''}${cliente.bairro? ' — '+cliente.bairro:''}<br>
+            ${cliente.endereco||''}${cliente.numero? ', '+cliente.numero:''}${cliente.complemento? ' - '+cliente.complemento:''}${cliente.bairro? ' — '+cliente.bairro:''}<br>
             ${cliente.cidade||''} ${cliente.uf||''}<br>
             ${cliente.email||''}${cliente.telefone? ' · '+cliente.telefone:''}
           </div>
@@ -1182,7 +1218,7 @@ document.getElementById('fechar-modal-cliente').onclick = ()=> document.getEleme
 function abrirModalCliente(id){
   const modal = document.getElementById('modal-cliente');
   modal.classList.add('ativo');
-  const campos = ['nome','cpf','email','telefone','cep','cidade','endereco','bairro','uf','arq-nome','arq-email'];
+  const campos = ['nome','cpf','email','telefone','cep','cidade','endereco','numero','complemento','bairro','uf','arq-nome','arq-email'];
   if(id){
     const c = ESTADO.clientes.find(x=>x.id===id);
     ESTADO.clienteEditando = id;
@@ -1194,17 +1230,45 @@ function abrirModalCliente(id){
     document.getElementById('cli-cep').value = c.cep||'';
     document.getElementById('cli-cidade').value = c.cidade||'';
     document.getElementById('cli-endereco').value = c.endereco||'';
+    document.getElementById('cli-numero').value = c.numero||'';
+    document.getElementById('cli-complemento').value = c.complemento||'';
     document.getElementById('cli-bairro').value = c.bairro||'';
     document.getElementById('cli-uf').value = c.uf||'';
     document.getElementById('cli-arq-nome').value = c.arquiteto_nome||'';
     document.getElementById('cli-arq-email').value = c.arquiteto_email||'';
     document.getElementById('btn-excluir-cliente').style.display='inline-flex';
+    document.getElementById('historico-cliente').style.display='block';
+    renderHistoricoCliente(id);
   } else {
     ESTADO.clienteEditando = null;
     document.getElementById('titulo-modal-cliente').textContent = 'Novo cliente';
     campos.forEach(c=> document.getElementById('cli-'+c).value = '');
     document.getElementById('btn-excluir-cliente').style.display='none';
+    document.getElementById('historico-cliente').style.display='none';
   }
+}
+
+async function renderHistoricoCliente(clienteId){
+  const cont = document.getElementById('lista-historico-cliente');
+  cont.innerHTML = '<div class="vazio" style="padding:16px 0;">Carregando...</div>';
+  const { data, error } = await sb.from('orcamentos')
+    .select('numero, data_orcamento, status, vl_total')
+    .eq('cliente_id', clienteId)
+    .order('numero', {ascending:false});
+  if(error){ cont.innerHTML = '<div class="vazio" style="padding:16px 0;">Erro ao carregar histórico.</div>'; return; }
+  if(!data || data.length===0){ cont.innerHTML = '<div class="vazio" style="padding:16px 0;">Nenhum orçamento ainda para este cliente.</div>'; return; }
+  cont.innerHTML = data.map(o=>`
+    <div class="lista-item">
+      <div>
+        <div class="nome">#${o.numero}</div>
+        <div class="meta">${new Date(o.data_orcamento).toLocaleDateString('pt-BR')}</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:14px;">
+        <span class="tag-status tag-${o.status}">${o.status}</span>
+        <span class="mono">${fmtMoeda(o.vl_total)}</span>
+      </div>
+    </div>
+  `).join('');
 }
 
 /* autocompletar CEP via ViaCEP */
@@ -1236,7 +1300,11 @@ document.getElementById('btn-salvar-cliente').onclick = async ()=>{
     uf: document.getElementById('cli-uf').value.trim(),
     arquiteto_nome: document.getElementById('cli-arq-nome').value.trim(),
     arquiteto_email: document.getElementById('cli-arq-email').value.trim(),
-    updated_at: new Date().toISOString()
+    updated_at: new Date().toISOString(),
+    ...(COLUNAS_ENDERECO_DETALHADO_EXISTEM ? {
+      numero: document.getElementById('cli-numero').value.trim(),
+      complemento: document.getElementById('cli-complemento').value.trim()
+    } : {})
   };
   if(!payload.nome){ toast('Informe o nome do cliente.'); return; }
 
@@ -1284,6 +1352,20 @@ function renderMatriz(){
       renderMatriz();
     };
   });
+}
+
+async function garantirReferencia(tabela, nome){
+  nome = (nome||'').trim();
+  if(!nome) return;
+  const existe = ESTADO[tabela].some(r=> r.nome.toLowerCase() === nome.toLowerCase());
+  if(existe) return;
+  const { data, error } = await sb.from(tabela).insert({nome}).select().single();
+  if(error){
+    if(error.code !== '23505') console.error('Erro ao salvar novo registro em '+tabela+':', error);
+    return;
+  }
+  ESTADO[tabela].push(data);
+  toast(`"${nome}" adicionado à matriz de dados (${tabela === 'ambientes' ? 'ambientes' : 'produtos'}).`);
 }
 
 async function adicionarReferencia(tabela, inputId){
